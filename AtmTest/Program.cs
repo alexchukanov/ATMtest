@@ -24,7 +24,6 @@ namespace AtmTest
                 Atm.PrintMessage("Algorithm number = (1 or 2)", true);
                 return;
             }
-            
 
             Atm.PrintMessage("Enter amount in £ to withdraw:", false);
             withdrawInput = Atm.ReadNumber();
