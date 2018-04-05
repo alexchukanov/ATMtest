@@ -31,7 +31,7 @@ namespace AtmTest
 
             if (withdrawInput == 0)
             {
-                Atm.PrintMessage("Are you OK ?", true);
+                Atm.PrintMessage("Are you OK?", true);
                 return;
             }
 
