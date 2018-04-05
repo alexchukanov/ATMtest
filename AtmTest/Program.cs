@@ -8,41 +8,67 @@ namespace AtmTest
 {
     public class Program
     {
-        static eTransactionMode transactionMode = eTransactionMode.ALGORITHM_1;
+        static eTransactionMode transactionMode = eTransactionMode.None;
         static int withdrawInput = 0;
+        static int algorithmN = 0;
 
         static Atm atm = null;
 
         static void Main(string[] args)
         {
-            Atm.PrintMessage("Input amount in £ to withdraw", false);
-            withdrawInput = Atm.ReadWithdrawlAmount();
+            Atm.PrintMessage("Select algorithm number (1 or 2):", false);
+            algorithmN = Atm.ReadNumber();
+
+            if (algorithmN == 0 || algorithmN > 2)
+            {
+                Atm.PrintMessage("Algorithm number = (1 or 2)", true);
+                return;
+            }
+            
+
+            Atm.PrintMessage("Enter amount in £ to withdraw:", false);
+            withdrawInput = Atm.ReadNumber();
 
             if (withdrawInput == 0)
             {
                 Atm.PrintMessage("Are you OK?", true);
                 return;
-            }           
+            }
 
-            List<CashDeck> cashDeckList = new List<CashDeck>
-            {
-               // 100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
-                new CashDeck(eNote.GBP50,50),
-                new CashDeck(eNote.GBP20,50),
-                new CashDeck(eNote.GBP10,50),
-                new CashDeck(eNote.GBP5, 50),
-                new CashDeck(eNote.GBP2, 100),
-                new CashDeck(eNote.GBP1, 100),
-            };
+            List<CashDeck> cashDeckList = null;
 
-            switch(transactionMode)
+            switch (algorithmN)
             {
-                case eTransactionMode.ALGORITHM_1:
-                    atm = new Atm(cashDeckList, new TransactionModeAlgo1());
+                case 1:
+                    transactionMode = eTransactionMode.ALGORITHM_1;
+                    cashDeckList = new List<CashDeck>
+                    {
+                       // 100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
+                        new CashDeck(eNote.GBP50,50),
+                        new CashDeck(eNote.GBP20,50),
+                        new CashDeck(eNote.GBP10,50),
+                        new CashDeck(eNote.GBP5, 50),
+                        new CashDeck(eNote.GBP2, 100),
+                        new CashDeck(eNote.GBP1, 100),
+                    };
+                    atm = new Atm(cashDeckList, new TransactionModeAlgoA());
                     break;
 
-                case eTransactionMode.ALGORITHM_2:
-                    atm = new Atm(cashDeckList, new TransactionModeAlgo2());
+                case 2:
+                    transactionMode = eTransactionMode.ALGORITHM_2;
+                    cashDeckList = new List<CashDeck>
+                    {
+                       // 100x£1, 100x£2, 50x£5, 50x£10, 50x£50, 50x£20.
+                        new CashDeck(eNote.GBP20,50),
+                        new CashDeck(eNote.GBP50,50),
+                        new CashDeck(eNote.GBP10,50),
+                        new CashDeck(eNote.GBP5, 50),
+                        new CashDeck(eNote.GBP2, 100),
+                        new CashDeck(eNote.GBP1, 100),
+                    };
+                    atm = new Atm(cashDeckList, new TransactionModeAlgoA());
+                    // you don't need here another algorithm, just use CashDesk order
+                    // if you want to use a real different algorith you should implement ITransactionMode interface
                     break;
 
                 default:
@@ -138,7 +164,7 @@ namespace AtmTest
             }
         }
 
-        public static int ReadWithdrawlAmount()
+        public static int ReadNumber()
         {
             string amount = Console.ReadLine();
 
@@ -320,7 +346,7 @@ namespace AtmTest
         }
     }
 
-    public class TransactionModeAlgo1 : ITransaction
+    public class TransactionModeAlgoA : ITransaction
     {        
         int withdrawSetTotalAmount = 0;
 
@@ -351,42 +377,11 @@ namespace AtmTest
         }
     }
 
-    public class TransactionModeAlgo2 : ITransaction
-    {
-        int withdrawSetTotalAmount = 0;
-
+    public class TransactionModeAlgoB : ITransaction
+    {        
         public WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdraw)
-        {
-            WithdrawalTransaction wt = new WithdrawalTransaction(inputWithdraw);
-
-            int requestedCashAmount = inputWithdraw - withdrawSetTotalAmount;
-
-            var cashSet = cashDeckList.SingleOrDefault(x => x.Note == eNote.GBP20);
-
-            if (cashSet != null)
-            {
-                cashDeckList.Remove(cashSet);
-            }
-
-
-            for (int i = 0; i < cashDeckList.Count(); i++)
-            {
-                CashSet requestedCashSet = cashDeckList[i].AskMaxCashAmount(requestedCashAmount - withdrawSetTotalAmount);
-
-                int setCashAmount = (int)requestedCashSet.Note * requestedCashSet.NoteNum;
-
-                if (setCashAmount != 0)
-                {
-                    wt.CashSetList.Add(requestedCashSet);
-                    withdrawSetTotalAmount += setCashAmount;
-                }
-
-                if (withdrawSetTotalAmount == requestedCashAmount)
-                {
-                    break;
-                }
-            }
-            return wt;
+        {           
+            return null;
         }
     }
 
@@ -402,7 +397,7 @@ namespace AtmTest
 
     enum eTransactionMode
     {
-        NotDefine,
+        None,
         ALGORITHM_1,
         ALGORITHM_2
     }
