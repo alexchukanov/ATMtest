@@ -43,7 +43,7 @@ namespace AtmTest
                     transactionMode = eTransactionMode.ALGORITHM_1;
                     cashDeckList = new List<CashDeck>
                     {
-                       // 100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
+                       //100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
                         new CashDeck(eNote.GBP50,50),
                         new CashDeck(eNote.GBP20,50),
                         new CashDeck(eNote.GBP10,50),
