@@ -8,13 +8,22 @@ namespace AtmTest
 {
     public class Program
     {
-        static eTransactionMode transactionMode = eTransactionMode.Algo1;
-        static int withdrawlInput = 100;
+        static eTransactionMode transactionMode = eTransactionMode.ALGORITHM_1;
+        static int withdrawInput = 0;
 
         static Atm atm = null;
 
         static void Main(string[] args)
         {
+            Atm.PrintMessage("Input amount in £ to withdraw", false);
+            withdrawInput = Atm.ReadWithdrawlAmount();
+
+            if (withdrawInput == 0)
+            {
+                Atm.PrintMessage("Are you OK?", true);
+                return;
+            }           
+
             List<CashDeck> cashDeckList = new List<CashDeck>
             {
                // 100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
@@ -28,11 +37,11 @@ namespace AtmTest
 
             switch(transactionMode)
             {
-                case eTransactionMode.Algo1:
+                case eTransactionMode.ALGORITHM_1:
                     atm = new Atm(cashDeckList, new TransactionModeAlgo1());
                     break;
 
-                case eTransactionMode.Algo2:
+                case eTransactionMode.ALGORITHM_2:
                     atm = new Atm(cashDeckList, new TransactionModeAlgo2());
                     break;
 
@@ -40,36 +49,46 @@ namespace AtmTest
                     break;
             }
 
-            double startBalance = atm.GetBalance();
+            double startBalance = atm.GetAtmBalance();
 
-            if (startBalance < withdrawlInput)
+            //header
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("\n");
+            sb.AppendLine(String.Format(transactionMode.ToString()));
+            sb.AppendLine(String.Format(@"£{0:0.00} ATM balance", startBalance));
+           
+            Atm.PrintMessage(sb.ToString(), false);
+
+            if (startBalance < withdrawInput)
             {
-                Atm.PrintMessage("Sorry, ATM is empty");
+                Atm.PrintMessage("Please, try to withdraw a lesser amount", true);
                 return;
             }
 
-            if (atm.WithdrawMoney(withdrawlInput))
+            bool isTrransactionOk = atm.WithdrawMoney(withdrawInput);
+
+            if (isTrransactionOk)
             {
-                Atm.PrintMessage("Transaction is OK, take your receipt and money");
-                
+                atm.PrintReceipt();
+                Atm.PrintMessage("Transaction is OK, take your receipt and money", true);                
             }
             else
             {
-                Atm.PrintMessage("Transaction is failed, take your card");
+                Atm.PrintMessage("Transaction is failed, take your card", true);
             }
         }
     }
 
     public interface ITransaction
     {
-        WithdrawTransaction CreateTransaction(List<CashDeck> cashDeckList, int entry);
+        WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int entry);
     }
 
     public class Atm
     {
         ITransaction transactionModeAlgo = null;
         List<CashDeck> cashDeckList = null;
-        WithdrawTransaction withdrawTransaction = null;
+        WithdrawalTransaction WithdrawalTransaction = null;
 
         public Atm(List<CashDeck> cashDeckList, ITransaction transactionModeAlgo )
         {
@@ -77,36 +96,68 @@ namespace AtmTest
             this.transactionModeAlgo = transactionModeAlgo;
         }
 
-        public bool WithdrawMoney(int entry)
+        public bool WithdrawMoney(int withdrawAmount)
         {
-            withdrawTransaction = transactionModeAlgo.CreateTransaction(cashDeckList, entry);
+            bool isWithdrawMoneyOk = false;
 
-            int transactionAmount = withdrawTransaction.GetTransactionAmount();
-            int atmBalance = GetBalance();
+            WithdrawalTransaction = transactionModeAlgo.CreateTransaction(cashDeckList, withdrawAmount);
 
-            if(transactionAmount < atmBalance)
+            int transactionAmount = WithdrawalTransaction.GetTransactAmount();
+            int atmBalance = GetAtmBalance();
+
+            if (transactionAmount > atmBalance)
             {
-                PrintMessage("Transaction is failed, choose anover amount");
-                return false;
+                PrintMessage("Transaction is failed, choose another amount", true);
+            }
+            else
+            {
+                isWithdrawMoneyOk = PostTransaction();
             }
 
-            return PostTransaction();
+            return isWithdrawMoneyOk;
         }
 
         public int GetAtmBalance()
         {
-            return 0;
+            int atmBalance = 0;
+
+            foreach (CashDeck cashDeck in cashDeckList)
+            {
+                atmBalance += cashDeck.CashAmount;
+            }
+
+            return atmBalance;
         }
 
-        public static void PrintMessage(string message)
-        {
+        public static void PrintMessage(string message, bool isInputWait)
+        {            
             Console.WriteLine(message);
-            Console.ReadKey();
+            if (isInputWait)
+            {
+                Console.ReadKey();
+            }
+        }
+
+        public static int ReadWithdrawlAmount()
+        {
+            string amount = Console.ReadLine();
+
+            int amountValue = 0;
+
+            if (!int.TryParse(amount, out amountValue))
+            {
+                PrintMessage("Incorrect value", false);
+            }
+
+            return amountValue;
         }
 
         public bool PostTransaction()
         {
-            CashDeck [] cashDeckListCopy = null;
+            bool isResultOk = false;
+            int postCount = 0;
+
+            CashDeck[] cashDeckListCopy = new CashDeck[cashDeckList.Count]; 
             cashDeckList.CopyTo(cashDeckListCopy);
 
             foreach (CashDeck cashDeck in cashDeckListCopy)
@@ -115,37 +166,41 @@ namespace AtmTest
                 {
                     cashDeck.NoteNum -= cashDeck.RequestedNoteNum;
                     cashDeck.RequestedNoteNum = 0;
+                    postCount++;
                 }
                 else
                 {
-                    PrintMessage("Transaction is failed, take your card");
-                    return false;
+                    continue;
                 }
             }
 
-            cashDeckList = new List<CashDeck>(cashDeckListCopy);
+            if (postCount != 0)
+            {
+                cashDeckList = new List<CashDeck>(cashDeckListCopy);
+                isResultOk = true;
+            }
 
-            return true;
+            return isResultOk;
         }
 
         public void PrintReceipt()
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine(String.Format(@"ALGORITHM 1: {0}", transactionModeAlgo));
             sb.AppendLine("Input [Withdrawal amount]");
-            sb.AppendLine(withdrawTransaction.InputWithdraw.ToString());
+            sb.AppendLine(WithdrawalTransaction.InputWithdraw.ToString());
             sb.AppendLine("Output");
 
-            foreach (CashSet cashSet in withdrawTransaction.CashSetList)
+            foreach (CashSet cashSet in WithdrawalTransaction.CashSetList)
             {
-                sb.Append(String.Format(@"{0},",cashSet.ToString()) );
+                sb.Append(cashSet.ToString());
             }
 
-            sb.Remove(sb.Length-1, 2);
-            sb.AppendLine(String.Format(@"{0} balance, GBP", GetAtmBalance()));
+            sb.Remove(sb.Length-1, 1);
+            sb.AppendLine("");
+            sb.AppendLine(String.Format(@"£{0:0.00} ATM balance", GetAtmBalance()));
 
-            PrintMessage("");
+            PrintMessage(sb.ToString(), false);
         }
     }
 
@@ -181,25 +236,19 @@ namespace AtmTest
             }
         }
 
-        public int AskMaxCashAmount(int cashAmount)
-        {
-            int requestedNoteNum = 0;
+        public CashSet AskMaxCashAmount(int askedCashAmount)
+        {   
 
             if (NoteNum != 0)
             {
-                if (NoteNum == 1 && (int)Note < cashAmount)
-                {
-                    requestedNoteNum = 1;
-                }
-                else
-                {
-                    requestedNoteNum = cashAmount % (int)Note;
-                }
+                RequestedNoteNum = askedCashAmount / (int)Note;
+            }
+            else
+            {
+                RequestedNoteNum = 0;
             }
 
-            RequestedNoteNum = requestedNoteNum;
-
-            return requestedNoteNum * (int)Note;
+            return new CashSet(Note, RequestedNoteNum); 
         }
 
         public bool WithdrawAmount()
@@ -220,28 +269,30 @@ namespace AtmTest
         }
     }
 
-    public class WithdrawTransaction
+    public class WithdrawalTransaction
     {
         public List<CashSet> CashSetList { get; set; }
         public int InputWithdraw { get; set; }
-
-        public WithdrawTransaction(int inputWithdraw)
+        
+        public WithdrawalTransaction(int inputWithdraw)
         {
             InputWithdraw = inputWithdraw;
 
             CashSetList = new List<CashSet>();
-
         }
 
-        public int GetTransactionAmount()
+        public int GetTransactAmount()
         {
-            return 0;
-        }
+            int transactAmount = 0;
 
-        public string PrintReceipt()
-        {
-            return "";
+            foreach (CashSet cashSet in CashSetList)
+            {
+                transactAmount += cashSet.CashAmount;
+            }
+
+            return transactAmount;
         }
+        
     }
 
     public class CashSet
@@ -257,7 +308,7 @@ namespace AtmTest
 
         public override string ToString()
         {
-            return "";
+            return String.Format("£{0}x{1},", (int)Note, NoteNum );
         }
 
         public int CashAmount
@@ -271,40 +322,71 @@ namespace AtmTest
 
     public class TransactionModeAlgo1 : ITransaction
     {        
-        int calcAmount = 0;
+        int withdrawSetTotalAmount = 0;
 
-        public WithdrawTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdraw)
+        public WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdraw)
         {
-            WithdrawTransaction wt = new WithdrawTransaction(inputWithdraw);
+            WithdrawalTransaction wt = new WithdrawalTransaction(inputWithdraw);
 
-            int requestedCashAmount = inputWithdraw - calcAmount;
+            int requestedCashAmount = inputWithdraw - withdrawSetTotalAmount;
 
             for (int i = 0; i < cashDeckList.Count(); i++)
             {
-                int calcAmount = cashDeckList[i].AskMaxCashAmount(requestedCashAmount);
+                CashSet requestedCashSet = cashDeckList[i].AskMaxCashAmount(requestedCashAmount - withdrawSetTotalAmount);
 
-                if (calcAmount != 0)
+                int setCashAmount = (int)requestedCashSet.Note * requestedCashSet.NoteNum;
+
+                if (setCashAmount != 0)
                 {
-                    CashSet cashSet = new CashSet(cashDeckList[i].Note, cashDeckList[i].NoteNum);
-
-                    wt.CashSetList.Add(cashSet);
+                    wt.CashSetList.Add(requestedCashSet);
+                    withdrawSetTotalAmount += setCashAmount;
                 }
 
-                if (calcAmount == requestedCashAmount)
-                {
+                if (withdrawSetTotalAmount == requestedCashAmount)
+                {                   
                     break;
                 }                
             }
-
             return wt;
         }
     }
 
     public class TransactionModeAlgo2 : ITransaction
     {
-        public WithdrawTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdrawl)
+        int withdrawSetTotalAmount = 0;
+
+        public WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdraw)
         {
-            return null;
+            WithdrawalTransaction wt = new WithdrawalTransaction(inputWithdraw);
+
+            int requestedCashAmount = inputWithdraw - withdrawSetTotalAmount;
+
+            var cashSet = cashDeckList.SingleOrDefault(x => x.Note == eNote.GBP20);
+
+            if (cashSet != null)
+            {
+                cashDeckList.Remove(cashSet);
+            }
+
+
+            for (int i = 0; i < cashDeckList.Count(); i++)
+            {
+                CashSet requestedCashSet = cashDeckList[i].AskMaxCashAmount(requestedCashAmount - withdrawSetTotalAmount);
+
+                int setCashAmount = (int)requestedCashSet.Note * requestedCashSet.NoteNum;
+
+                if (setCashAmount != 0)
+                {
+                    wt.CashSetList.Add(requestedCashSet);
+                    withdrawSetTotalAmount += setCashAmount;
+                }
+
+                if (withdrawSetTotalAmount == requestedCashAmount)
+                {
+                    break;
+                }
+            }
+            return wt;
         }
     }
 
@@ -321,7 +403,7 @@ namespace AtmTest
     enum eTransactionMode
     {
         NotDefine,
-        Algo1,
-        Algo2
+        ALGORITHM_1,
+        ALGORITHM_2
     }
 }
