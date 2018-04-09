@@ -9,15 +9,14 @@ namespace AtmTest
     public class Program
     {
         static eTransactionMode transactionMode = eTransactionMode.None;
-        static int withdrawInput = 0;
-        static int algorithmN = 0;
+        //static int withdrawInput = 0;
 
         static Atm atm = null;
 
         static void Main(string[] args)
         {
             Atm.PrintMessage("Select algorithm number (1 or 2):", false);
-            algorithmN = Atm.ReadNumber();
+            int algorithmN = Atm.ReadNumber();
 
             if (algorithmN == 0 || algorithmN > 2)
             {
@@ -25,54 +24,28 @@ namespace AtmTest
                 return;
             }
 
+            Atm.PrintMessage("Enter a desired banknote nominal (10,20,50 ):", false);
+            int noteN = Atm.ReadNumber();
+
+            if (noteN == int.MaxValue && noteN != 10 && noteN != 20 && noteN != 50)
+            {
+                Atm.PrintMessage("Enter a banknote nominal = (10,20,50 ", true);
+                return;
+            }
+
             Atm.PrintMessage("Enter amount in £ to withdraw:", false);
-            withdrawInput = Atm.ReadNumber();
+            int withdrawInput = Atm.ReadNumber();
 
             if (withdrawInput == 0)
             {
                 Atm.PrintMessage("Are you OK?", true);
                 return;
             }
+            
+            transactionMode = (eTransactionMode)Enum.Parse(typeof(eTransactionMode), algorithmN.ToString());
+            eNote firstNote =  (eNote)Enum.Parse(typeof(eNote), noteN.ToString());
 
-            List<CashDeck> cashDeckList = null;
-
-            switch (algorithmN)
-            {
-                case 1:
-                    transactionMode = eTransactionMode.ALGORITHM_1;
-                    cashDeckList = new List<CashDeck>
-                    {
-                       //100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
-                        new CashDeck(eNote.GBP50,50),
-                        new CashDeck(eNote.GBP20,50),
-                        new CashDeck(eNote.GBP10,50),
-                        new CashDeck(eNote.GBP5, 50),
-                        new CashDeck(eNote.GBP2, 100),
-                        new CashDeck(eNote.GBP1, 100),
-                    };
-                    atm = new Atm(cashDeckList, new TransactionModeAlgoA());
-                    break;
-
-                case 2:
-                    transactionMode = eTransactionMode.ALGORITHM_2;
-                    cashDeckList = new List<CashDeck>
-                    {
-                       // 100x£1, 100x£2, 50x£5, 50x£10, 50x£50, 50x£20.
-                        new CashDeck(eNote.GBP20,50),
-                        new CashDeck(eNote.GBP50,50),
-                        new CashDeck(eNote.GBP10,50),
-                        new CashDeck(eNote.GBP5, 50),
-                        new CashDeck(eNote.GBP2, 100),
-                        new CashDeck(eNote.GBP1, 100),
-                    };
-                    atm = new Atm(cashDeckList, new TransactionModeAlgoA());
-                    // you don't need here another algorithm, just use CashDesk order
-                    // if you want to use a real different algorith you should implement ITransactionMode interface
-                    break;
-
-                default:
-                    break;
-            }
+            atm = new Atm(transactionMode, firstNote);
 
             double startBalance = atm.GetAtmBalance();
 
@@ -104,6 +77,8 @@ namespace AtmTest
         }
     }
 
+    
+
     public interface ITransaction
     {
         WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int entry);
@@ -113,12 +88,69 @@ namespace AtmTest
     {
         ITransaction transactionModeAlgo = null;
         List<CashDeck> cashDeckList = null;
-        WithdrawalTransaction WithdrawalTransaction = null;
+        WithdrawalTransaction WithdrawalTransaction = null;       
 
-        public Atm(List<CashDeck> cashDeckList, ITransaction transactionModeAlgo )
+        public Atm(eTransactionMode transactionMode, eNote firsNote)
         {
-            this.cashDeckList = cashDeckList;
-            this.transactionModeAlgo = transactionModeAlgo;
+            switch (transactionMode)
+            {
+                case eTransactionMode.ALGORITHM_1:
+                    transactionModeAlgo = new TransactionModeAlgoA();
+                    break;
+                case eTransactionMode.ALGORITHM_2:
+                    transactionModeAlgo = new TransactionModeAlgoA();
+                    break;
+                default:
+                    transactionModeAlgo = new TransactionModeAlgoA();
+                    break;
+            }
+
+            switch (firsNote)
+            {
+                case eNote.GBP50:                   
+                    cashDeckList = new List<CashDeck>
+                    {
+                       //100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
+                        new CashDeck(eNote.GBP50,50),
+                        new CashDeck(eNote.GBP20,50),
+                        new CashDeck(eNote.GBP10,50),
+                        new CashDeck(eNote.GBP5, 50),
+                        new CashDeck(eNote.GBP2, 100),
+                        new CashDeck(eNote.GBP1, 100),
+                    };
+                    break;
+
+                case eNote.GBP20:
+                    cashDeckList = new List<CashDeck>
+                    {                       
+                       new CashDeck(eNote.GBP20,50),
+                       new CashDeck(eNote.GBP50,50),                        
+                       new CashDeck(eNote.GBP10,50),                       
+                    };
+                    break;
+
+                case eNote.GBP10:
+                    cashDeckList = new List<CashDeck>
+                    {                       
+                       new CashDeck(eNote.GBP10,50),
+                       new CashDeck(eNote.GBP50,50),
+                       new CashDeck(eNote.GBP20,50),
+                    };
+                    break;
+
+                default:
+                    cashDeckList = new List<CashDeck>
+                    {                       
+                        new CashDeck(eNote.GBP50,50),
+                        new CashDeck(eNote.GBP20,50),
+                        new CashDeck(eNote.GBP10,50),
+                    };                    
+                    break;
+            }
+
+                       new CashDeck(eNote.GBP5, 50);
+                       new CashDeck(eNote.GBP2, 100);
+                       new CashDeck(eNote.GBP1, 100);
         }
 
         public bool WithdrawMoney(int withdrawAmount)
@@ -167,7 +199,7 @@ namespace AtmTest
         {
             string amount = Console.ReadLine();
 
-            int amountValue = 0;
+            int amountValue = int.MaxValue;
 
             if (!int.TryParse(amount, out amountValue))
             {
@@ -394,7 +426,7 @@ namespace AtmTest
         GBP50 = 50
     }
 
-    enum eTransactionMode
+    public enum eTransactionMode
     {
         None,
         ALGORITHM_1,
