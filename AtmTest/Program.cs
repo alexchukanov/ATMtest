@@ -6,15 +6,44 @@ using System.Threading.Tasks;
 
 namespace AtmTest
 {
+    /*
+        There is a special cash machine, without any security, that dispenses money(notes and coins). The machine has a given initial state of what coins and notes it has available.
+    The initial state is: 100x1p, 100x2p, 100x5p, 100x10p, 100x20p, 100x50p, 100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
+    You should create a program that is given the value to withdraw as an input.
+    Program the cash machine, so it has 2 algorithms that can be swapped (swapping can be done by rebuilding and rerunning the application):
+    1. Algorithm that returns least number of items(coins or notes)
+    2. Algorithm that returns the highest number of £20 notes possible
+    Output the number of coins and notes given for each withdrawal.
+    The machine should output the count and value of coins and notes dispensed and the balance amount left.
+    The program should be extendible and written using .NET framework.Use the best approach you can to implement the solution.
+    Examples:
+
+    ALGORITHM 1
+    Input (Withdrawal amount)
+    120.00
+    Output
+    £50x2, £20x1
+    £X.XX balance
+
+    ALGORITHM 2
+    Input
+    120.00
+    Output
+    £20x6
+    £X.XX balance
+    */
+
     public class Program
     {
-        static eTransactionMode transactionMode = eTransactionMode.None;
-        //static int withdrawInput = 0;
-
+        static eTransactionMode transactionMode = eTransactionMode.ALGORITHM_1;
+       
         static Atm atm = null;
 
         static void Main(string[] args)
         {
+            int algorithmN = 1;
+
+            /* we use only ALGORITHM_1
             Atm.PrintMessage("Select algorithm number (1 or 2):", false);
             int algorithmN = Atm.ReadNumber();
 
@@ -23,6 +52,7 @@ namespace AtmTest
                 Atm.PrintMessage("Algorithm number = (1 or 2)", true);
                 return;
             }
+            */
 
             Atm.PrintMessage("Enter a desired banknote nominal (10,20,50 ):", false);
             int noteN = Atm.ReadNumber();
@@ -98,7 +128,7 @@ namespace AtmTest
                     transactionModeAlgo = new TransactionModeAlgoA();
                     break;
                 case eTransactionMode.ALGORITHM_2:
-                    transactionModeAlgo = new TransactionModeAlgoA();
+                    transactionModeAlgo = new TransactionModeAlgoA(); // TransactionModeAlgoB() to be implemented
                     break;
                 default:
                     transactionModeAlgo = new TransactionModeAlgoA();
@@ -113,10 +143,7 @@ namespace AtmTest
                        //100x£1, 100x£2, 50x£5, 50x£10, 50x£20, 50x£50.
                         new CashDeck(eNote.GBP50,50),
                         new CashDeck(eNote.GBP20,50),
-                        new CashDeck(eNote.GBP10,50),
-                        new CashDeck(eNote.GBP5, 50),
-                        new CashDeck(eNote.GBP2, 100),
-                        new CashDeck(eNote.GBP1, 100),
+                        new CashDeck(eNote.GBP10,50),                        
                     };
                     break;
 
@@ -148,9 +175,9 @@ namespace AtmTest
                     break;
             }
 
-                       new CashDeck(eNote.GBP5, 50);
-                       new CashDeck(eNote.GBP2, 100);
-                       new CashDeck(eNote.GBP1, 100);
+                    cashDeckList.Add(new CashDeck(eNote.GBP5, 50));
+                    cashDeckList.Add(new CashDeck(eNote.GBP2, 50));
+                    cashDeckList.Add(new CashDeck(eNote.GBP1, 50));
         }
 
         public bool WithdrawMoney(int withdrawAmount)
@@ -377,6 +404,7 @@ namespace AtmTest
         }
     }
 
+    //ALGORITHM_1
     public class TransactionModeAlgoA : ITransaction
     {        
         int withdrawSetTotalAmount = 0;
@@ -412,7 +440,7 @@ namespace AtmTest
     {        
         public WithdrawalTransaction CreateTransaction(List<CashDeck> cashDeckList, int inputWithdraw)
         {           
-            return null;
+            return null; // to be implemented
         }
     }
 
