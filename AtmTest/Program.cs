@@ -53,24 +53,19 @@ namespace AtmTest
                 return;
             }
             */
-
-            Atm.PrintMessage("Enter a desired banknote nominal (10,20,50 ):", false);
+                       
+            Atm.PrintMessage("Enter a desired banknote nominal to withdraw (10 or 20 or 50):", false);
             int noteN = Atm.ReadNumber();
 
-            if (noteN == int.MaxValue && noteN != 10 && noteN != 20 && noteN != 50)
+            if (noteN != 10 && noteN != 20 && noteN != 50)
             {
-                Atm.PrintMessage("Enter a banknote nominal = (10,20,50 ", true);
+                Atm.PrintMessage("Wrong banknote nominal, press any key to exit.", true);
                 return;
             }
 
             Atm.PrintMessage("Enter amount in £ to withdraw:", false);
             int withdrawInput = Atm.ReadNumber();
 
-            if (withdrawInput == 0)
-            {
-                Atm.PrintMessage("Are you OK?", true);
-                return;
-            }
             
             transactionMode = (eTransactionMode)Enum.Parse(typeof(eTransactionMode), algorithmN.ToString());
             eNote firstNote =  (eNote)Enum.Parse(typeof(eNote), noteN.ToString());
@@ -89,7 +84,8 @@ namespace AtmTest
 
             if (startBalance < withdrawInput)
             {
-                Atm.PrintMessage("Please, try to withdraw a lesser amount", true);
+                Atm.PrintMessage("Please, try to withdraw a lesser amount", false);
+                Atm.PrintMessage("Press any key", true);
                 return;
             }
 
@@ -98,11 +94,13 @@ namespace AtmTest
             if (isTrransactionOk)
             {
                 atm.PrintReceipt();
-                Atm.PrintMessage("Transaction is OK, take your receipt and money", true);                
+                Atm.PrintMessage("Transaction is OK, take your receipt and money", false);
+                Atm.PrintMessage("Press any key", true);
             }
             else
             {
-                Atm.PrintMessage("Transaction is failed, take your card", true);
+                Atm.PrintMessage("Transaction is failed, take your card", false);
+                Atm.PrintMessage("Press any key", true);
             }
         }
     }
@@ -226,13 +224,13 @@ namespace AtmTest
         {
             string amount = Console.ReadLine();
 
-            int amountValue = int.MaxValue;
+            int amountValue = -1;
 
-            if (!int.TryParse(amount, out amountValue))
+            if (!int.TryParse(amount, out amountValue) || amountValue <= 0)
             {
                 PrintMessage("Incorrect value", false);
             }
-
+            
             return amountValue;
         }
 
